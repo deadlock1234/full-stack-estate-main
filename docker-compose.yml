@@ -1,33 +1,127 @@
-version: '3.8'
-
-services:
-  mongo:
-    image: mongo:latest
-    container_name: mongodb
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: example
-    volumes:
-      - mongo-data:/data/db
-    network_mode: host
-
-  backend:
-    image: akshat2804/api:latest
-    environment:
-      - DATABASE_URL=mongodb+srv://ziya:ziya@cluster0.b3wukwk.mongodb.net/proj?retryWrites=true&w=majority&appName=Cluster0
-      - JWT_SECRET_KEY=qj8F2djyD9dSKhuFsz/2DM+AHxnXrt6ClqakNBjyrv8=
-      - CLIENT_URL=http://localhost:5173
-      - MAPBOX_ACCESS_TOKEN=pk.eyJ1Ijoieml5YWtoYW91eTJrczJ5MXVkODE5NiJ9.asEwQKji9P8JSXcCGM4RCw
-    depends_on:
-      - mongo
-    network_mode: host
-
-  frontend:
-    image: akshat2804/client:latest
-    environment:
-      - NODE_ENV=development
-    network_mode: host
-
-volumes:
-  mongo-data:
-    driver: local
+# MongoDB Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+      - name: mongodb
+        image: mongo:latest
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          value: "root"
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          value: "example"
+        volumeMounts:
+        - name: mongo-data
+          mountPath: /data/db
+      volumes:
+      - name: mongo-data
+        persistentVolumeClaim:
+          claimName: mongo-pvc
+---
+# MongoDB Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+spec:
+  ports:
+  - port: 27017
+  selector:
+    app: mongodb
+---
+# MongoDB PersistentVolumeClaim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongo-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+# Backend Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: akshat2804/api:latest
+        env:
+        - name: DATABASE_URL
+          value: "mongodb+srv://ziya:ziya@cluster0.b3wukwk.mongodb.net/proj?retryWrites=true&w=majority&appName=Cluster0"
+        - name: JWT_SECRET_KEY
+          value: "qj8F2djyD9dSKhuFsz/2DM+AHxnXrt6ClqakNBjyrv8="
+        - name: CLIENT_URL
+          value: "http://localhost:5173"
+        - name: MAPBOX_ACCESS_TOKEN
+          value: "pk.eyJ1Ijoieml5YWtoYW91eTJrczJ5MXVkODE5NiJ9.asEwQKji9P8JSXcCGM4RCw"
+---
+# Backend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  ports:
+  - port: 80
+    targetPort: 8080
+  selector:
+    app: backend
+---
+# Frontend Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: akshat2804/client:latest
+        env:
+        - name: NODE_ENV
+          value: "development"
+---
+# Frontend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+spec:
+  ports:
+  - port: 80
+    targetPort: 3000
+  selector:
+    app: frontend
