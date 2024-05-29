@@ -35,6 +35,7 @@ kind: Service
 metadata:
   name: mongodb
 spec:
+  type: ClusterIP
   ports:
   - port: 27017
   selector:
@@ -72,7 +73,7 @@ spec:
         image: akshat2804/api:latest
         env:
         - name: DATABASE_URL
-          value: "mongodb+srv://ziya:ziya@cluster0.b3wukwk.mongodb.net/proj?retryWrites=true&w=majority&appName=Cluster0"
+          value: "mongodb://root:example@mongodb:27017/proj?authSource=admin"
         - name: JWT_SECRET_KEY
           value: "qj8F2djyD9dSKhuFsz/2DM+AHxnXrt6ClqakNBjyrv8="
         - name: CLIENT_URL
@@ -86,6 +87,7 @@ kind: Service
 metadata:
   name: backend
 spec:
+  type: ClusterIP
   ports:
   - port: 80
     targetPort: 8080
@@ -126,5 +128,3 @@ spec:
     targetPort: 3000
   selector:
     app: frontend
-
-
